@@ -1,0 +1,233 @@
+---
+title: "Homework 1"
+author: "Sean Morris"
+date: "2024-01-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+setwd("/Users/seanmorris/Desktop/Statlearning/Homework/HW1")
+```
+# Part 1 #
+
+### Question 1 ###
+
+A) For an extremely large sample size with a small number of predictors, one would expect a flexible model to outperform an inflexible model. In the presence of a large sample size, a flexible model is able to better learn the relationships between the data without over fitting, as more observations allow for a more robust capture of the data's relationship within the population. 
+
+B) In the opposite case, where there are a large amount of predictors with minimal observations, an inflexible model would be the better choice. When working with smaller sample sizes, flexible models are more prone to over fitting due to a limited amount of training instances. 
+
+C) When the relationship between the response variable and predictors is highly non-linear, one would expect a flexible model to outperform. Adopting a flexible model architecture allows one to better capture more complex relationships between the data, as they have more leeway to fit these relationships when compared to the more rigid model. 
+
+D) If the variance of residuals is extremely high, then an inflexible model is likely the better choice. An abnormally high value for the variance of residual values implies a high presence of noise. If one were to use a flexible model to fit said data, then they would likely be modelling this noise, leading to untrustworthy results. On the other hand, using an inflexible model allows one to pick up less variability when modelling, as it will likely ignore the more granular relationships that exist in the sample. 
+
+
+### Question 2 ###
+
+A) This scenario presents a regression problem with the goal of gaining inference from the data. If the goal is to understand the factors that affect CEO salary, then our response variable is numeric (likely in currency units), which necessitates a regression problem. Our goal is inference since we are looking for factors that affect salary, rather than using said factors to predict a given salary.
+
+B) This scenario outlines a classification problem with the goal of predicting the outcome of a product launch. The specified response variable of either success or failure is binary, which is a characteristic of classification models. Further we know the objective is prediction because the specified goal is to know whether a certain product will succeed or fail based on the characteristics of previous comparative launches.
+
+C) Here, the goal is prediction through the use of regression techniques. As stated explicitly in the question, the goal is "predicting the % change" of a given response. This is a regression problem because our response and feature variables are numeric (% change in exchange rates & % change in global stock markets).
+
+### Question 6 ###
+
+Parametric statistical learning specifies a fairly precise form for a function which predicts a certain target or response variable, then uses said function to estimate the values for each parameter or feature. An advantage of parametric learning is that the models involed are typically interpretable, meaning one can gather inference from their results. A disadvantage of parametric learning is that models are often at risk of exhibiting bias (i.e. a difference between the predicted response and actual response). Non-parametric statistical learning does not make assumptions about the particular shape of the true response function. These models are often used to find patterns hidden in the data. Non-parametric learning methods are good for forming predictions, but they fall short in their interpretability. 
+
+### Question 7 ###
+
+A)
+```{r}
+data7 = data.frame(
+  X1 = c(0, 2, 0, 0, -1, 1),
+  X2 = c(3, 0, 1, 1, 0, 1),
+  X3 = c(0, 0, 3, 2, 1, 1),
+  Y = c("Red", "Red", "Red", "Green", "Green", "Red")
+)
+
+X_test = c(X1 = 0, X2 = 0, X3 = 0)
+
+euc_dist = function(df, test_point) {
+  sqrt(rowSums((df - test_point)^2))
+}
+
+distances = euc_dist(data7[, c("X1", "X2", "X3")], X_test)
+data7$Dist = distances
+print(distances)
+```
+
+B) When K=1, our prediction is 'Green,' as its coordinate vector possesses the lowest euclidean distance to our testpoint, and because we are only observing one neighbor the prediction must be the closest.
+
+C) When K=3, our prediction changes to 'Red.' Here, we are looking at the 3 lowest euclidean distance observations, where 2 of the 3 possess the response variable 'Red.'
+
+D) If the Bayes decision boundary in this problem is highly non-linear, then we would expect the optimal value for K to be lower. A lower value for K allows for decisions to be made based on a smaller number of neighbors, allowing the model to be more flexible and as a result locate more nuanced groups within the data.
+
+### Question 8 ###
+
+A) & B)
+```{r}
+college = read.csv("college.csv", header = TRUE)
+
+rownames(college) = college[, 1]
+college = college[, -1]
+View(college)
+
+
+```
+
+C) 
+```{r}
+summary(college)
+```
+
+```{r}
+pairs(college[,2:11])
+```
+
+```{r}
+boxplot(college$Outstate ~ college$Private,
+        xlab = "Private",
+        ylab = "Outstate")
+```
+
+```{r}
+Elite = rep("No", nrow(college))
+Elite[college$Top10perc > 50] = "Yes"
+Elite = as.factor(Elite)
+college = data.frame(college, Elite)
+
+summary(college$Elite)
+
+boxplot(college$Outstate ~ college$Elite,
+        xlab = "Elite",
+        ylab = "Outstate")
+```
+
+```{r}
+par(mfrow=c(2,2))
+hist(college$Outstate,
+     main = "Outstate Tuition $")
+hist(college$Room.Board,
+     main = "Room & Board Cost $")
+hist(college$Accept,
+     main = "# Accepted")
+hist(college$Enroll,
+     main = "# Enrolled")
+```
+
+```{r}
+boxplot(college$Books ~ college$Elite,
+        xlab = "Elite",
+        ylab = "Cost of Books",
+        main = "Comparing Cost of Books between \n Elite and Non-elite Colleges")
+```
+No discernable difference between the cost of books between elite and non-elite institutions
+
+```{r}
+boxplot(college$Books ~ college$Private,
+        xlab = "Private",
+        ylab = "Cost of Books",
+        main = "Comparing Cost of Books between \n Private & Public Colleges")
+```
+More positive outliers among private institutions - maybe due to lack of subsidies compared to public institutions?
+
+```{r}
+boxplot(college$Grad.Rate ~ college$Elite,
+        xlab = "Elite",
+        ylab = "Graduation Rate",
+        main = "Comparing Graduation Rate Between \n Elite & Non-elite Colleges")
+```
+Elite colleges tend to have higher graduation rates
+
+
+```{r}
+boxplot(college$perc.alumni ~ college$Elite,
+        xlab = "Elite",
+        ylab = "Percent of Alumni who Donate",
+        main = "Comparing Alumni Donation Rates Between \n Elite & Non-elite Colleges")
+```
+Alumni from elite colleges tend to donate more
+
+
+```{r}
+boxplot(college$S.F.Ratio ~ college$Private,
+        xlab = "Private",
+        ylab = "Student/Faculty Ratio",
+        main = "Comparing Student/Faculty Ratio Between \n Public & Private Colleges")
+```
+Lower student/faculty ratio in private colleges.
+
+
+# Part 2 #
+
+### Question 1 ###
+
+Note: I defined this function above to solve a previous problem, so I will just re-write it here to solve the general case for 2 vectors 
+```{r}
+vecDist = function(a,b) {
+  # Error for non-numeric
+  if (!is.numeric(a) || !is.numeric(b)) {
+    stop("Non-numeric Argument in Function input")
+  }
+  
+  #Error for dimensional mismatch
+  if (length(a) != length(b)) {
+    stop("Dimensions of Inputs not the same")
+  }
+  
+  sqrt(sum((a - b)^2))
+}
+
+vec1 = matrix(c(1,2,3), nrow = 3, ncol = 1)
+vec2 = matrix(c(4,5,6), nrow = 3, ncol = 1)
+# vec3 = matrix(c(7,8,9,10), nrow = 4, ncol = 1)
+
+#vecDist(vec1, "test")
+#vecDist(vec3, vec1)
+print(vecDist(vec1, vec2))
+```
+
+### Question 2 ###
+
+```{r}
+nearestNeighbor = function(x,M,output="point") {
+  # Error for non-numeric
+  if (!is.numeric(x) || !is.numeric(M)) {
+    stop("Non-numeric input in function argument")
+  }
+  
+  # Dimensionality Check
+  if (ncol(M) != length(x)) {
+    stop("# Columns in M not equal to # Elements in x")
+  }
+  
+  # Calculate Euc Distance
+  dist = apply(M, 1, function(row) vecDist(row, x))
+  
+  # Find row index with smallest dist value
+  closest_index = which.min(dist)
+  
+  # Conditional outputs based on "point" or "index"
+  if (output == "point") {
+    return(M[closest_index, , drop = FALSE])
+  } else if (output == "index") {
+    return(closest_index)
+  } else {
+    stop("Output must be 'Point' or 'Index'")
+  }
+}
+
+matrix1 = matrix(1:25, nrow = 5)
+vec4 = matrix(c(1,2,3,4,5), nrow = 5, ncol = 1)
+# vec5 = matrix(c(6,7,8,9), nrow = 4, ncol = 1)
+
+# nearestNeighbor("test", matrix1, output = "point")
+# nearestNeighbor(vec5, matrix1, output = "point")
+# print(nearestNeighbor(vec4, matrix1, output = "test"))
+
+
+print(nearestNeighbor(vec4, matrix1, output = "point"))
+print(nearestNeighbor(vec4, matrix1, output = "index"))
+```
+

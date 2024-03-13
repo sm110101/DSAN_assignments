@@ -1,0 +1,834 @@
+---
+title: "HW4"
+author: "Sean Morris"
+date: "2024-03-08"
+output:
+  html_document:
+    theme: darkly
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+setwd("~/Desktop/Statlearning/Homework/HW4")
+```
+
+# Question 2 #
+
+
+## Part g ##
+
+***Create a plot that displays, for each integer value of n from 1 to 100,000, the probability that the jth observation is in the bootstrap sample. Comment on what you observe.***
+
+```{r}
+# Initialize function for calculating values
+func_g = function(n) {
+  return (1 - (1 - (1/n))^n)
+}
+
+# Sequence from 1 to 100,000
+n_values = 1:100000
+
+# Applying func_g over the sequence
+g_values = sapply(n_values, func_g)
+
+# Combining n_values and g_values into a dataframe
+df_g = data.frame(n = n_values, p = g_values)
+
+# Displaying the first few rows of the dataframe
+head(df_g)
+```
+
+```{r}
+# Plotting
+plot(df_g$n, df_g$p, log = "x", xaxt = "n", type = "l",
+     xlab = "n (log10 scale)", ylab = "p(j)",
+     main = "Probability of jth obs appearing")
+axis(1, at = 10^seq(0, 5, by = 1), labels = 10^seq(0, 5, by = 1))
+```
+
+- As the number of observations approaches infinity, the probability that the j'th value appears in the bootstrap data set appraoches a number around 0.6321
+
+
+
+## Part h ##
+
+```{r}
+set.seed(777)
+
+store = rep(NA, 10000)
+for(i in 1:10000) {
+  store[i] = sum(sample(1:100, rep=TRUE) == 4) > 0
+}
+
+mean(store)
+```
+
+- For the simulated sample of 10000 observations, the probability that j=4 appears in the bootstrap sample is approximately equal to our theorized value of 0.6321.
+
+
+
+# Question 8 #
+
+## Part a ##
+
+```{r}
+rm(list = ls())
+
+# Generating simulated data
+set.seed(1)
+x = rnorm(100)
+y = x - 2 * x^2 + rnorm(100)
+```
+
+- n = 100
+- p = 1
+
+$$
+X \sim \mathcal{N}(0,1) ; \quad \varepsilon \sim \mathcal{N}(0,1) ; \quad n = 100
+$$
+
+$$
+Y = X - 2X^2 + \varepsilon
+$$
+
+## Part b ##
+
+```{r}
+plot(x,y,
+     main = "Plot of X vs Y")
+```
+
+- Scatter plot of X vs Y shows a non-linear relationship between the two variables
+
+## Part c ##
+
+```{r}
+set.seed(1789)
+
+# Setting initial data frame and error df
+df_c = data.frame(x, y)
+n = length(df_c$x)
+errors_c = data.frame(model_i=rep(NA, n), 
+                      model_ii=rep(NA, n), 
+                      model_iii=rep(NA, n), 
+                      model_iv=rep(NA, n))
+
+
+# Running LOOCV
+for (i in 1:n) {
+  # Define the training and test sets
+  train = df_c[-i, ]
+  test = df_c[i, ]
+  
+  # Fit the four models
+  model_i = lm(y ~ x, data=train)
+  model_ii = lm(y ~ x + I(x^2), data=train)
+  model_iii = lm(y ~ x + I(x^2) + I(x^3), data=train)
+  model_iv = lm(y ~ x + I(x^2) + I(x^3) + I(x^4), data=train)
+  
+  # Make predictions and calculate errors
+  pred_i = predict(model_i, newdata=test)
+  pred_ii = predict(model_ii, newdata=test)
+  pred_iii = predict(model_iii, newdata=test)
+  pred_iv = predict(model_iv, newdata=test)
+  
+  errors_c$model_i[i] = test$y - pred_i
+  errors_c$model_ii[i] = test$y - pred_ii
+  errors_c$model_iii[i] = test$y - pred_iii
+  errors_c$model_iv[i] = test$y - pred_iv
+}
+
+# View the first few rows of the errors dataframe
+head(errors_c)
+```
+
+## Part d ##
+
+```{r}
+set.seed(1231)
+
+errors_c2 = data.frame(model_i=rep(NA, n), 
+                      model_ii=rep(NA, n), 
+                      model_iii=rep(NA, n), 
+                      model_iv=rep(NA, n))
+
+# Running LOOCV
+for (i in 1:n) {
+  # Define the training and test sets
+  train = df_c[-i, ]
+  test = df_c[i, ]
+  
+  # Fit the four models
+  model_i2 = lm(y ~ x, data=train)
+  model_ii2 = lm(y ~ x + I(x^2), data=train)
+  model_iii2 = lm(y ~ x + I(x^2) + I(x^3), data=train)
+  model_iv2 = lm(y ~ x + I(x^2) + I(x^3) + I(x^4), data=train)
+  
+  # Make predictions and calculate errors
+  pred_i2 = predict(model_i2, newdata=test)
+  pred_ii2 = predict(model_ii2, newdata=test)
+  pred_iii2 = predict(model_iii2, newdata=test)
+  pred_iv2 = predict(model_iv2, newdata=test)
+  
+  errors_c2$model_i[i] = test$y - pred_i2
+  errors_c2$model_ii[i] = test$y - pred_ii2
+  errors_c2$model_iii[i] = test$y - pred_iii2
+  errors_c2$model_iv[i] = test$y - pred_iv2
+}
+
+print(sum(errors_c == errors_c2))
+```
+
+- Respective LOOCV errors are likely the same because the seed used to generate the initial data set remained unchanged. Therefore, the two methods are applied to the same data set, with no other dependencies.
+
+
+## Part e ##
+
+```{r}
+cat(" Model i mean", mean(errors_c$model_i), "\n\n",
+    "Model ii mean", mean(errors_c$model_ii), "\n\n",
+    "Model iii mean", mean(errors_c$model_iii), "\n\n",
+    "Model iv mean", mean(errors_c$model_iv))
+```
+
+- Model 4 exhibits the smallest LOOCV error, a result that is intuitively aligned with its quartic functional form, which provides a nuanced and flexible fit for the data's underlying patterns. Similarly, the quadratic model's performance, evidenced by the second-lowest error metric, coherently mirrors the observed inverse parabolic trend within the dataset. This concordance suggests that the models with even polynomial degrees are better at capturing curvature inherent in the data.
+
+## Part f ##
+```{r}
+summary(model_i)
+summary(model_ii)
+summary(model_iii)
+summary(model_iv)
+```
+
+- Model i mean   -0.03646299 
+- Model ii mean   0.00264074 
+- Model iii mean  0.007875966 
+- Model iv mean  -0.0007800036
+
+
+- The correspondence between the significance of the coefficient estimates from the four models and the error metrics obtained through LOOCV is noteworthy. Consistently, the quadratic term appears to be the most influential, resulting in reduced error measurements for models that incorporate this term, compared to the baseline linear model which solely utilizes the linear predictor X. This observation underscores the quadratic term's predictive power. In contrast, the cubic term X^3 in the third model does not demonstrate statistical significance, aligning with its relatively larger LOOCV error compared to the second model. Furthermore, while the quartic term X^4 exhibits marginal significance, it nonetheless contributes a degree of explanatory value, as evidenced by the fourth model's minimal LOOCV error amongst all considered models. This suggests that the inclusion of the X^4 term enhances the model's capacity to capture the underlying data structure.
+
+
+# Question 9 #
+
+## Part a & b ##
+
+```{r}
+rm(list=ls())
+#install.packages("ISLR2")
+library(ISLR2)
+data("Boston")
+attach(Boston)
+
+
+# Estimate for popultation mean and standard error
+mu_medv = mean(Boston$medv)
+se_medv = sqrt(var(Boston$medv)) / sqrt(length(Boston$medv))
+
+cat(" Mean:", mu_medv,"\n\n",
+    "StdErr:", se_medv)
+```
+
+- The population mean of medv is approximately 22.53, plus or minus 0.4088 units
+
+## Part c ##
+
+```{r}
+set.seed(1989)
+
+store = rep(NA, 10000)
+for(i in 1:10000) {
+  store[i] = mean(sample(Boston$medv, length(Boston$medv), rep=TRUE))
+}
+
+mu_boot = mean(store)
+se_boot = sd(store)
+
+cat(" Est. Mean: ", mu_medv, "\n",
+    "Bootstrap: ", mu_boot, "\n\n",
+    "Est. SE:   ", se_medv, "\n",
+    "Bootstrap: ", se_boot)
+```
+
+## Part d ##
+
+```{r}
+# 95 CI for the mean of medv:
+UCI = mu_boot + 2*se_boot
+LCI = mu_boot - 2*se_boot
+
+cat(" 95% Confidence Interval for Mean medv:\n\n",
+    "[",LCI,",",UCI,"]")
+```
+
+```{r}
+t.test(Boston$medv)
+```
+
+- The confidence interval found via the boot strap method is within one decimal from the CI found using the t-test method
+
+## Part e ##
+
+```{r}
+set.seed(1992)
+
+# Median 
+median_medv = median(Boston$medv)
+
+# Boot strap method to find standard error
+store_median = rep(NA, 10000)
+for(i in 1:10000) {
+  store_median[i] = median(sample(Boston$medv, length(Boston$medv), rep=TRUE))
+}
+
+median_boot = mean(store_median)
+se_med_boot = sd(store_median)
+
+cat(" Est. Median:      ", median_medv, "\n",
+    "Bootstrap Median: ", median_boot, "\n\n",
+    "Est. Median SE:   ", se_med_boot)
+```
+
+- Both the median and its estimated standard error are smaller than the mean and its respective standard error - likely because the median and its bootstrap standard error tend to be smaller than those of the mean due to the median's lower sensitivity to outliers and skewed distributions.
+
+## Part g ##
+
+```{r}
+set.seed(1234)
+
+# Estimating Quantile
+q_ten = quantile(Boston$medv, .10)
+
+# Boot strap method
+store_quantiles = rep(NA, 10000)
+for(i in 1:10000) {
+  store_quantiles[i] = quantile(sample(Boston$medv, length(Boston$medv), rep=TRUE), probs = .10)
+}
+
+q_ten_boot = mean(store_quantiles)
+se_q_ten_boot = sd(store_quantiles)
+
+cat(" Est. 10th Prcntl:      ", q_ten, "\n",
+    "Bootstrap 10th Prcntl: ", q_ten_boot, "\n\n",
+    "SE Bootstrap:          ", se_q_ten_boot)
+
+```
+
+- The bootstrap and direct methods estimate the 10th percentile of  approximately 12.75, demonstrating consistency. The bootstrap standard error of 0.5002397 indicates a modest variability in the estimate, affirming its reliability.
+
+
+# Question 1 #
+
+***We perform best subset, forward stepwise, and backward stepwise selection on a single data set. For each approach, we obtain p + 1 models, containing 0,1,2,..., p predictors. Explain your answers:***
+
+## Part a ##
+
+- I would expect best subset selection to have the lowest training RSS, as the algorithm in this case parses through every possible combination of features, and therefore can extract the lowest possible RSS from the data it is modelling.
+
+## Part b ##
+
+- It is not possible to determine which type of model selection would yield the lowest test RSS, as we would need to see how well each model selection performs on unseen data. 
+
+## Part c ##
+
+***i***
+
+- True, as the sequence of feature selections for any k-feature forward stepwise selection will always be the same
+
+***ii***
+
+- True, similar to forward stepwise selection, the sequence of features selected for any k-feature backward stepwise selection will be the same. 
+
+***iii***
+
+- False, as the collection of selected features in a forward stepwise selection may be different than the collection found in backward stepwise selection.
+
+***iv***
+
+- False. Similarly, because forward stepwise selection and backward stepwise selection operate on different principles (adding for forward and removing for backward), the k-variable model from forward stepwise selection is not necessarily a subset of the k+1-variable model from backward stepwise selection.
+
+***v***
+
+- False, as the best subset selection evaluates all possible combinations of predictors separately for each model size, so the k-variable model's predictors are not guaranteed to be a subset of the k+1-variable.
+
+
+# Question 3 #
+
+***Suppose we estimate the regression coefficients in a linear regression model by minimizing***
+
+$$
+\min \left( \sum_{i=1}^{n} \left( y_i - \beta_0 - \sum_{j=1}^{p} \beta_j x_{ij} \right)^2 \right) \quad \text{subject to} \quad \sum_{j=1}^{p} \left| \beta_j \right| \leq s
+$$
+
+## Part a - Training RSS ##
+
+- ***i***, Increasing the optimization constraint initially causes the training RSS to rise, but as the constraint loosens, allowing for more complex models, the training RSS decreases before increasing again due to over fitting.
+
+## Part b - Test RSS ##
+
+- ***ii***, Elevating s from 0 improves test data fit, reducing test RSS until a point where further increases lead to over fitting on the training data, which then escalates test RSS.
+
+## Part c - Variance ##
+
+- ***iv***, as the optimization constraint on coefficients is relaxed, the model's variability initially increases, reflecting a tendency to over fit the data.
+
+## Part d - Squared bias ##
+
+- ***iii***, placing greater emphasis on the coefficients can make the model conform too closely to the training data, leading to an increase in bias as the model begins to over fit.
+
+## Part e - irriducible error ##
+
+- ***v***, as the irreducible error is not affected by the model's complexity. Rather, it is determined by the noise within the data itself, which is not changed by the model selection process.
+
+
+# Question 8 #
+
+## Part a ##
+
+```{r}
+rm(list=ls())
+set.seed(1112)
+
+x = rnorm(100)
+```
+
+## Part b ##
+
+```{r}
+y = 1 + x + I(x^2) + I(x^3) + rnorm(100)
+
+plot(x,y)
+```
+
+## Part c & d ##
+
+```{r}
+# install.packages("leaps")
+library(leaps)
+
+x_df = data.frame(y=y,
+                  x1=x,
+                  x2=I(x^2),
+                  x3=I(x^3),
+                  x4=I(x^4),
+                  x5=I(x^5),
+                  x6=I(x^6),
+                  x7=I(x^7),
+                  x8=I(x^8),
+                  x9=I(x^9),
+                  x10=I(x^10))
+
+regfit.full = regsubsets(y ~ ., data = x_df, nvmax = 10)
+reg.summary = summary(regfit.full)
+
+reg.summary
+```
+
+```{r}
+regfit.forward = regsubsets(y ~ ., data = x_df, nvmax = 10, method = "forward")
+fwd.summary = summary(regfit.forward)
+regfit.backward = regsubsets(y ~ ., data = x_df, nvmax = 10, method = "backward")
+bkwd.summary = summary(regfit.backward)
+```
+
+
+```{r, fig.height=10, fig.width=15}
+par(mfrow = c(3,3))
+
+## Best Subset
+
+plot(reg.summary$cp,
+     type = "line",
+     xlab = "# Predictors",
+     ylab = "Cp",
+     main = "Cp (Best Subset)")
+
+plot(reg.summary$bic,
+     type = "line",
+     xlab = "# Predictors",
+     ylab = "BIC",
+     main = "BIC (Best Subset)")
+
+plot(reg.summary$adjr2,
+     type = "line",
+     xlab = "# Predictors",
+     ylab = "Adjusted R2",
+     main = "Adjusted R2 (Best Subset)")
+
+## Forward Step 
+
+plot(fwd.summary$cp,
+     type = "line",
+     xlab = "# Predictors",
+     ylab = "Cp",
+     main = "Cp (Forward)")
+
+plot(fwd.summary$bic,
+     type = "line",
+     xlab = "# Predictors",
+     ylab = "BIC",
+     main = "BIC (Forward)")
+
+plot(fwd.summary$adjr2,
+     type = "line",
+     xlab = "# Predictors",
+     ylab = "Adjusted R2",
+     main = "Adjusted R2 (Forward)")
+
+## Backward Step
+
+plot(bkwd.summary$cp,
+     type = "line",
+     xlab = "# Predictors",
+     ylab = "Cp",
+     main = "Cp (Backward)")
+
+plot(bkwd.summary$bic,
+     type = "line",
+     xlab = "# Predictors",
+     ylab = "BIC",
+     main = "BIC (Backward)")
+
+plot(bkwd.summary$adjr2,
+     type = "line",
+     xlab = "# Predictors",
+     ylab = "Adjusted R2",
+     main = "Adjusted R2 (Backward)")
+```
+
+- At a glance, it appears as though all methods yield identical results to each other. This likely occurred as a result of the limited amount of sample observations.
+
+## Part e ##
+
+```{r}
+#install.packages("glmnet")
+library(glmnet)
+x = as.matrix(x)
+x_df = x_df[,-1]
+x_df = as.matrix(x_df)
+y = as.matrix(y)
+
+set.seed(1789)
+train = sample(1:nrow(x), nrow(x) / 2)
+y.test = y[-train,]
+
+# Running initial lasso
+reg.lasso = glmnet(x_df[train,], y[train], alpha = 1)
+
+# Running K-Fold CV for optimal lambda
+set.seed(1789)
+cv.out = cv.glmnet(x_df[train,], y[train,1], alpha = 1)
+plot(cv.out)
+
+# Best lambda value
+bestlam = cv.out$lambda.min
+
+# Running prediction on Test Data
+lasso.pred = predict(reg.lasso, s = bestlam,
+                     newx = x_df[-train,], type = "coefficients")
+
+lasso.pred
+```
+
+- All coefficients aside from x2 and x3 constrained to zero. Feature x3 has the highest magnitude effect on response variable y.
+
+## Part f ##
+
+```{r}
+set.seed(1112)
+
+y2 = 1 + I(x^7) + rnorm(100)
+plot(x, y2)
+```
+
+```{r}
+## Best Subset
+x_df = as.data.frame(x_df)
+
+subset.partf = regsubsets(y2 ~ ., data = x_df, nvmax = 10)
+subset.summary = summary(subset.partf)
+
+subset.summary
+```
+
+```{r}
+## Lasso ##
+
+y2.test = y2[-train,]
+
+y2 = as.matrix(y2)
+x_df = as.matrix(x_df)
+
+# Running initial lasso
+reg.lasso2 = glmnet(x_df[train,], y2[train], alpha = 1)
+
+# Running K-Fold CV for optimal lambda
+set.seed(1789)
+cv.out2 = cv.glmnet(x_df[train,], y2[train], alpha = 1)
+# plot(cv.out2)
+
+# Best lambda value
+bestlam2 = cv.out2$lambda.min
+
+# Running prediction on Test Data
+lasso.pred2 = predict(reg.lasso2, s = bestlam2,
+                     newx = x_df[-train,], type = "coefficients")
+
+lasso.pred2
+```
+
+- Results obtained for new model drop all coefficients besides those for x5-x7 and x9. Coefficient value for x7 has highest magnitude effect on response variable likely due to similarity with underlying structure of output variable. 
+
+# Question 9 #
+
+## Part a ##
+
+```{r}
+rm(list=ls())
+data("College")
+attach(College)
+College$Private = as.factor(College$Private)
+
+nrow(College)
+
+# Training Index
+set.seed(1789)
+train_index = sort(sample(1:777, floor(777*0.75)))
+
+train = College[train_index,]
+test = College[-train_index,]
+```
+
+
+## Part b ##
+
+```{r}
+## Running on test data
+fit.b = lm(Apps ~ ., data = train)
+fitted.b = predict(fit.b, newdata = test)
+# summary(fit.b)
+
+## Test Stat
+test.error.b = mean((test$Apps - fitted.b)^2)
+print(test.error.b)
+```
+
+## Part c ##
+
+```{r}
+
+set.seed(1789)
+
+x = model.matrix(Apps ~. -1, data = train) # Exclude intercept
+y = train$Apps
+
+# CV 
+cv_ridge = cv.glmnet(x, y, alpha = 0)
+ridge_pred = predict(cv_ridge, s = "lambda.min", newx = model.matrix(Apps ~ . -1, data = test))
+
+## Test Error
+test.error.c = mean((test$Apps - ridge_pred)^2)
+print(test.error.c)
+```
+
+## Part d ##
+
+```{r}
+
+# CV
+cv_lasso = cv.glmnet(x, y, alpha = 1)
+lasso_pred = predict(cv_lasso, s = "lambda.min", newx = model.matrix(Apps ~ . -1, data = test))
+
+## Test Error
+test.error.d = mean((test$Apps - lasso_pred)^2)
+
+## Non-zero coefficients
+non_zero_coeffs = sum(coef(cv_lasso, s = "lambda.min") != 0)
+
+## Result
+cat(" Test Error: ", test.error.d, "\n",
+    "# Non-zero: ", non_zero_coeffs)
+```
+
+
+## Part e ##
+
+```{r}
+library(pls)
+## Fit and prediction
+pcr_fit = pcr(Apps ~ ., data = train, scale = TRUE, validation = "CV")
+pcr_pred = predict(pcr_fit, newdata = test, ncomp = ncol(train)-1)
+
+## Test error and CV-chosen M
+test.error.e = mean((test$Apps - pcr_pred)^2)
+selected_M <- pcr_fit$ncomp
+
+## Result
+cat(" Test Error: ", test.error.e, "\n",
+    "Selected M: ", selected_M)
+```
+
+## Part f ##
+
+```{r}
+## Fit
+pls_fit = plsr(Apps ~ ., data = train, scale = TRUE, validation = "CV")
+summary(pls_fit) # Looks like lowest CV error is for comps = 15-17
+
+## Optimal M
+validation_plot = validationplot(pls_fit, val.type = "MSEP")
+
+## Predict
+pls_pred = predict(pls_fit, newdata = test, ncomp = 15)
+
+## Test error 
+test.error.f = mean((test$Apps - pls_pred)^2)
+
+## Result
+cat(" Test Error: ", test.error.f, "\n",
+    "Selected M: ", 15)
+```
+
+## Part g ##
+
+- When looking at model performance, the ridge regression had the lowest test error among the 5 models used, with the lasso coming in second. It is likely that the optimization constraint used in both of these models helped to reduce multicollinearity and as a result led them to over fit the training data less so than the other methods. Both the PCR and PLS models has test errors that were very close to the linear model, suggesting that dimensionality reduction did not significantly improve the predictive power over the number of applications received at different universities. While the ridge regression gave the best result, its test error is still quite large, which indicates a further need for refinement and model tuning.
+
+# Question 10 #
+
+## Part a ##
+
+```{r}
+rm(list=ls())
+
+## generating data
+set.seed(1789)
+
+p = 20
+n = 1000
+beta = rep(1,p)
+beta[1:10] = 0
+
+X = matrix(runif(n*p), nrow = n, ncol = p)
+Y = X %*% beta + rnorm(n)
+```
+
+## Part b ##
+
+```{r}
+## Splitting 
+set.seed(1789)
+
+train_index = sample(1:n, size = 100)
+train_X = X[train_index, ]
+train_Y = Y[train_index]
+test_X = X[-train_index, ]
+test_Y = Y[-train_index]
+```
+
+
+## Part c ##
+
+```{r}
+## Best subset
+fit.c = regsubsets(train_X, train_Y, nvmax = p)
+
+## Best models
+best_models = summary(fit.c)
+
+## Plotting
+plot(best_models$rss,
+     xlab = "# Features",
+     ylab = "Training MSE")
+```
+
+## Part d ##
+
+```{r}
+## Plotting test MSE
+# Preparing for MSE calculation
+mse_values = numeric(length = p) 
+colnames(test_X) = letters[1:ncol(test_X)]
+
+for (i in 1:p) {
+  model_summary = summary(regsubsets(train_X, train_Y, nvmax = p))
+  included_vars = model_summary$which[i, ]
+  
+  # Names of included variables vars, excluding the intercept
+  var_names = names(included_vars)[-1]
+  included_var_names = var_names[included_vars[-1]]
+  
+  # If intercept-only model, handle separately
+  if (length(included_var_names) == 0) {
+    predictions = rep(mean(train_Y), length(test_Y)) 
+    
+  } else {
+    # Subset test_X based on included vars
+    relevant_test_X = test_X[, included_var_names, drop = FALSE]
+    
+    # Get coeffs, including intercept
+    coefi = coef(regsubsets(train_X, train_Y, nvmax = p), id = i)
+    
+    # predictions
+    predictions = as.matrix(cbind(1, relevant_test_X)) %*% coefi
+  }
+  
+  # Test MSE 
+  mse_values[i] = mean((test_Y - predictions)^2)
+}
+
+## plotting
+plot(1:p, mse_values, 
+     type = 'o', 
+     xlab = "# Predictors", 
+     ylab = "Test MSE",
+     main = "Test MSE vs. # Predictors")
+```
+
+## Part e ##
+
+```{r}
+print(which.min(mse_values))
+```
+
+- Model size of 13 parameters takes on the lowest test MSE
+
+## Part f ##
+
+```{r}
+print(coef(fit.c, id = 12))
+
+```
+
+The model that minimizes the test MSE has several coefficients that align well with the true model, which has non-zero coefficients for variables 11 through 20. However, it incorrectly includes significant coefficients for variables b and e, which should be zero according to the true model. This discrepancy may be due to noise or overfitting. Overall, the fitted model captures the true influential variables reasonably well but also includes some that should not be part of the model based on the data generation process.
+
+## Part g ##
+
+```{r}
+## Question asks for RMSE
+rmse_values = numeric(length = p) # 'p' is the number of predictors
+
+for (i in 1:p) {
+  # Extract coefficients
+  coefi = coef(regsubsets(train_X, train_Y, nvmax = p), id = i)
+  
+  beta_hat = numeric(length = p)
+  names(beta_hat) = names(coefi)[-1]
+  
+  beta_hat[names(coefi)[-1]] <- coefi[-1] # Exclude intercept
+  
+  # Calculate RMSE
+  rmse_values[i] = sqrt(sum((beta - beta_hat)^2))
+}
+
+# Plotting the RMSD values
+plot(1:p, rmse_values, 
+     type = 'o', 
+     xlab = "Number of Predictors", 
+     ylab = "RMSE of Coefficients",
+     main = "RMSE of Coefficients vs. Number of Predictors")
+```
+
+- The new RMSE of coefficients plot shows a peak before decreasing, suggesting that initially adding predictors worsens the coefficient estimates, but they improve as more relevant predictors are included. The test MSE plot shows a steady decline, indicating improving prediction accuracy as more predictors are added. Ideally, the point where the RMSE begins to decrease should align with where the test MSE levels off, which appears to be the case here.

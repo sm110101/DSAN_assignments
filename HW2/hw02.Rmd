@@ -1,0 +1,327 @@
+---
+title: "Homework2"
+author: "Sean Morris"
+date: "2024-02-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+setwd("~/Desktop/Statlearning/Homework/HW2")
+```
+
+# Part A - Write a KNN function #
+
+```{r}
+# Read Data
+B_X = as.matrix(read.table("B_X.txt"))
+B_Y = as.matrix(read.table("B_Y.txt"))
+C_X = as.matrix(read.table("C_X.txt"))
+C_Y = as.matrix(read.table("C_Y.txt"))
+D_X = as.matrix(read.table("D_X.txt"))
+D_Y = as.matrix(read.table("D_Y.txt"))
+
+# Define a function that calculates euclidian distance of Px1 Vectors to a specified testpoint.
+vec_dist = function(a, b) {
+  # Error for non-numeric
+  if (!is.numeric(a) || !is.numeric(b)) {
+    stop("Non-numeric Argument in Function input")
+  }
+  
+  #Error for dimensional mismatch
+  if (length(a) != length(b)) {
+    stop("Dimensions of Inputs not the same")
+  }
+  
+  sqrt(sum((a - b)^2))
+}
+  
+#test_pt = rep(0,10)  
+```
+
+
+```{r}
+knn_pred = function(x_0, X, Y, k) {
+  # Ensuring uniformity between target and input data types
+  if (!is.numeric(x_0) || !is.numeric(X) || !is.numeric(k)) {
+    stop("Non-numeric input in function argument")
+  }
+  if (!(is.numeric(Y) || is.character(Y))) {
+  stop("Invalid target type")
+  }
+
+  # Dimensionality Check
+  if (ncol(X) != length(x_0)) {
+    stop("# Columns in prediction matrix != # elements in test vector")
+  }
+  
+  # Calculate Euc Distance
+  dist = apply(X, 1, function(row) vec_dist(row, x_0))
+  
+  # Find the k smallest distances according to the index
+  closest_indices = order(dist)[1:k]
+  
+  # Retrieve target valus of k closest neighbors
+  closest_targets = Y[closest_indices]
+  
+  # Return mean for numeric Y or mode for character Y
+  ## assume ties don't exist per class instructions
+  if (is.numeric(Y)) {
+    return(mean(closest_targets))
+  } else if (is.character(Y)) {
+    return(names(sort(table(closest_targets), decreasing = TRUE)[1]))
+  }
+}
+```
+
+# Part B & C - Implement and Visualize KNN with 1 Predictor and a Qualitative/Quantitative Response #
+
+```{r}
+# Defining test points
+test_points_B = seq(-3,3, by = 0.01)
+
+# Initialize classifications vector
+class_B = numeric(length(test_points_B))
+
+# Run Model
+for (i in 1:length(test_points_B)) {
+  class_B[i] = knn_pred(test_points_B[i],
+                        B_X,
+                        B_Y,
+                        1)
+}
+
+# Results
+class_B[1:25]
+```
+
+```{r}
+library(ggplot2)
+
+# Training Data Visualization
+B_train = data.frame(val = B_X[,1], fruit = B_Y[,1])
+
+ggplot(B_train, aes(x=val, y=fruit, color=fruit)) +
+  geom_point() +
+  labs(title = "Homework 2, Part B Training Data",
+       x = "Predictor Value",
+       y = "Class") +
+  theme_minimal()
+```
+
+```{r}
+# Testing Data Visualization
+B_test = data.frame(val = test_points_B, fruit = class_B)
+
+ggplot() +
+  geom_point(data = B_train, 
+             aes(x = val, y = fruit, color = fruit), 
+             size = 3, alpha = 0.7, shape = 5) +
+  geom_point(data = B_test, 
+             aes(x = val, y = fruit, color = fruit), 
+             size = 1) +
+  labs(title = "Homework 01, Exercise B",
+       subtitle = "k=1 KNN Classification",
+       x = "Predictor Value",
+       y = "Classification",
+       color = "Large Points Indicate\nTraining Data") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+
+```{r}
+# Now repeating the process for C's data 
+
+# Test points
+test_points_C1 = seq(-3,3,by=.01)
+test_points_C3 = seq(-3,3,by=.01)
+
+# Initialize classifications vectors
+class_C1 = numeric(length(test_points_C1))
+class_C3 = numeric(length(test_points_C3))
+
+# Run Model with K=1 neighbor
+for (i in 1:length(test_points_C1)) {
+  class_C1[i] = knn_pred(test_points_C1[i],
+                        C_X,
+                        C_Y,
+                        1)
+}
+
+# Run Model with K=3 neighbor
+for (i in 1:length(test_points_C3)) {
+  class_C3[i] = knn_pred(test_points_C3[i],
+                        C_X,
+                        C_Y,
+                        3)
+}
+
+# Results
+class_C1[1:25]
+class_C3[1:25]
+```
+
+```{r}
+# Visualizations
+
+C_train = data.frame(val = C_X[,1], 
+                     response = C_Y[,1])
+
+C_test = data.frame(val = test_points_C1, 
+                    # Both test point objects are equal
+                    response_k1 = class_C1,
+                    response_k3 = class_C3)
+
+# For k = 1 neighbor
+ggplot() +
+  geom_point(data = C_train, 
+             aes(x = val, y = response, color = "Training Data"), 
+             size = 5, shape = 19) +
+  geom_point(data = C_test, 
+             aes(x = val, y = response_k1, color = "Classification"), 
+             size = 1) +
+  labs(title = "Homework 01, Exercise C",
+       subtitle = "k=1 KNN Classification",
+       x = "Predictor Value",
+       y = "Classification",
+       color = "") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+```{r}
+# For k = 3 neighbor
+ggplot() +
+  geom_point(data = C_train, 
+             aes(x = val, y = response, color = "Training Data"), 
+             size = 5, shape = 19) +
+  geom_point(data = C_test, 
+             aes(x = val, y = response_k3, color = "Classification"), 
+             size = 1) +
+  labs(title = "Homework 01, Exercise C",
+       subtitle = "k=3 KNN Classification",
+       x = "Predictor Value",
+       y = "Classification",
+       color = "") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+# Part D - Implement and Visualize KNN with 2 Predictors and a Quantitative Response #
+
+
+```{r}
+# Test points
+range1 <- seq(-3, 3, by = .025)
+range2 <- seq(-3, 3, by = .025)
+
+
+test_points_D1 = expand.grid(range1, range2)
+test_points_D3 = expand.grid(range1, range2)
+names(test_points_D1) = c("x1", "x2")
+names(test_points_D3) = c("x1", "x2")
+
+
+# Initialize classifications vectors
+class_D1 = numeric(nrow(test_points_D1))
+class_D3 = numeric(nrow(test_points_D3))
+
+# Run Model with K=1 neighbor
+for (i in 1:nrow(test_points_D1)) {
+  class_D1[i] = knn_pred(as.numeric(test_points_D1[i, ]),
+                        D_X,
+                        D_Y,
+                        1)
+}
+
+# Run Model with K=3 neighbor
+for (i in 1:nrow(test_points_D3)) {
+  class_D3[i] = knn_pred(as.numeric(test_points_D3[i, ]),
+                        D_X,
+                        D_Y,
+                        3)
+}
+
+# Results
+class_D1[1:25]
+class_D3[1:25]
+```
+
+
+```{r}
+# Visualizations
+
+D_train = data.frame(x1 = D_X[,1],
+                     x2 = D_X[,2],
+                     response = D_Y[,1])
+
+D_test = data.frame(x1 = test_points_D1$x1,
+                    x2 = test_points_D1$x2,
+                    response_k1 = class_D1,
+                    response_k3 = class_D3)
+
+ggplot() +
+  geom_tile(data = D_test, 
+            aes(x = x1, y = x2, fill = response_k1)) +
+  scale_fill_gradient2(low = "blue", 
+                       high = "red", 
+                       mid = "green", 
+                       midpoint = 0, 
+                       limit = c(-25, 30)) + 
+  geom_point(data = D_train, aes(x = x1, y = x2), shape = 1, size = 4, ) +
+  labs(title = "Homework 01, Exercise D",
+       subtitle = "k=1 KNN Classification",
+       x = "X1",
+       y = "X2",
+       fill = "Classification") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+```{r}
+ggplot() +
+  geom_tile(data = D_test, 
+            aes(x = x1, y = x2, fill = response_k3)) +
+  scale_fill_gradient2(low = "blue", 
+                       high = "red", 
+                       mid = "green", 
+                       midpoint = 0,
+                       limit = c(-15, 20)) + 
+  geom_point(data = D_train, aes(x = x1, y = x2, fill = response), shape = 1, size = 4) +
+  labs(title = "Homework 01, Exercise D",
+       subtitle = "k=3 KNN Classification",
+       x = "X1",
+       y = "X2",
+       fill = "Classification") +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+# Part E - 3D-rendering of your results #
+
+```{r}
+library(rgl)
+
+# Create matrices for x, y, and z coordinates
+x_matrix = with(D_test, 
+                matrix(x1, nrow = sqrt(nrow(D_test)), 
+                       ncol = sqrt(nrow(D_test))))
+y_matrix = with(D_test, 
+                matrix(x2, nrow = sqrt(nrow(D_test)), 
+                       ncol = sqrt(nrow(D_test))))
+z_matrix = with(D_test, 
+                matrix(response_k1, nrow = sqrt(nrow(D_test)), 
+                       ncol = sqrt(nrow(D_test))))
+
+# 3D surface plot
+persp3d(x_matrix, y_matrix, z_matrix, 
+        col = "light blue", 
+        xlab = "X1", 
+        ylab = "X2", 
+        zlab = "Classification",
+        alpha = 1,
+        shade = 0.50)
+```
+
